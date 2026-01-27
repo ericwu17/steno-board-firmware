@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -171,7 +172,7 @@ static void char_to_code(uint8_t *buffer, char ch)
 	}
 }
 
-void send_keyboard(char c)
+void send_char(char c)
 {
     static uint8_t buffer[8] = {0};
     char_to_code(buffer, c);
@@ -181,11 +182,22 @@ void send_keyboard(char c)
     esp_hidd_dev_input_set(s_ble_hid_param.hid_dev, 0, 1, buffer, 8);
 }
 
-void send_keyboard_string(char* c) {
-    int n = strlen(c);
+void send_string(char* s) {
+    int n = strlen(s);
     for (int i = 0; i < n; i ++) {
-        send_keyboard(c[i]);
+        send_char(s[i]);
     }
+}
+
+void send_n_deletes(int n) {
+    char delete_char_code = 8;
+    for (int i = 0; i < n; i ++) {
+        send_char(delete_char_code);
+    }
+}
+
+bool is_connected() {
+    return s_ble_hid_param.task_hdl != NULL;
 }
 
 
@@ -210,8 +222,6 @@ static esp_hid_device_config_t ble_hid_config = {
 void ble_hid_demo_task(void *pvParameters) {
     while (1) {
         vTaskDelay(5000 / portTICK_PERIOD_MS);
-        ESP_LOGI(TAG, "Sending the message.");
-        send_keyboard_string("Hello Rila.");
     }
 }
 
@@ -293,7 +303,7 @@ static void ble_hidd_event_callback(void *handler_args, esp_event_base_t base, i
 }
 
 
-void app_main(void)
+void init_keyboard(void)
 {
     esp_err_t ret;
 
