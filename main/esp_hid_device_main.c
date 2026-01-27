@@ -176,10 +176,16 @@ void send_keyboard(char c)
     static uint8_t buffer[8] = {0};
     char_to_code(buffer, c);
     esp_hidd_dev_input_set(s_ble_hid_param.hid_dev, 0, 1, buffer, 8);
-    /* send the keyrelease event with sufficient delay */
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+
     memset(buffer, 0, sizeof(uint8_t) * 8);
     esp_hidd_dev_input_set(s_ble_hid_param.hid_dev, 0, 1, buffer, 8);
+}
+
+void send_keyboard_string(char* c) {
+    int n = strlen(c);
+    for (int i = 0; i < n; i ++) {
+        send_keyboard(c[i]);
+    }
 }
 
 
@@ -203,11 +209,9 @@ static esp_hid_device_config_t ble_hid_config = {
 
 void ble_hid_demo_task(void *pvParameters) {
     while (1) {
-        ESP_LOGI(TAG, "Sending the keystroke");
-
-        send_keyboard('f');
-        
-        vTaskDelay(8000 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        ESP_LOGI(TAG, "Sending the message.");
+        send_keyboard_string("Hello Rila.");
     }
 }
 
