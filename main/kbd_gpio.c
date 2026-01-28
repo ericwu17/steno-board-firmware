@@ -1,4 +1,8 @@
+#include <stdint.h>
 #include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "esp_log.h"
+
 
 #define SW1 0
 #define SW2 40
@@ -22,6 +26,9 @@
 
 #define LED1 5  // Left LED (red)
 #define LED2 4  // Right LED (green)
+
+static const int stroke_queue_length = 5;
+static QueueHandle_t stroke_queue;
 
 void init_kbd_gpio() {
     gpio_set_direction(SW1, GPIO_MODE_INPUT);
@@ -71,7 +78,7 @@ void init_kbd_gpio() {
     gpio_set_level(LED1, 0);
     gpio_set_level(LED2, 0);
 
-    
+    stroke_queue = xQueueCreate(stroke_queue_length, sizeof(uint32_t));
 }
 
 int read_switches() {
@@ -83,4 +90,78 @@ void set_led_1(int level) {
 }
 void set_led_2(int level) {
     gpio_set_level(LED2, level);
+}
+
+uint32_t read_keyboard_state() {
+    uint32_t res = 0;
+    vTaskDelay(3);
+    gpio_set_level(ROW1, 0);
+    {
+        res |= (!gpio_get_level(COL01) << 0);
+        res |= (!gpio_get_level(COL02) << 2);
+        res |= (!gpio_get_level(COL03) << 4);
+        res |= (!gpio_get_level(COL04) << 7);
+        res |= (!gpio_get_level(COL05) << 10);
+        res |= (!gpio_get_level(COL06) << 13);
+        res |= (!gpio_get_level(COL07) << 16);
+        res |= (!gpio_get_level(COL08) << 19);
+        res |= (!gpio_get_level(COL09) << 21);
+        res |= (!gpio_get_level(COL10) << 23);
+    }
+    gpio_set_level(ROW1, 1);
+    vTaskDelay(3);
+    gpio_set_level(ROW2, 0);
+    {
+        res |= (!gpio_get_level(COL01) << 1);
+        res |= (!gpio_get_level(COL02) << 3);
+        res |= (!gpio_get_level(COL03) << 5);
+        res |= (!gpio_get_level(COL04) << 8);
+        res |= (!gpio_get_level(COL05) << 11);
+        res |= (!gpio_get_level(COL06) << 14);
+        res |= (!gpio_get_level(COL07) << 17);
+        res |= (!gpio_get_level(COL08) << 20);
+        res |= (!gpio_get_level(COL09) << 22);
+        res |= (!gpio_get_level(COL10) << 24);
+    }
+    gpio_set_level(ROW2, 1);
+    vTaskDelay(3);
+    gpio_set_level(ROW3, 0);
+    {
+        res |= (!gpio_get_level(COL03) << 6);
+        res |= (!gpio_get_level(COL04) << 9);
+        res |= (!gpio_get_level(COL05) << 12);
+        res |= (!gpio_get_level(COL06) << 15);
+        res |= (!gpio_get_level(COL07) << 18);
+    }
+    gpio_set_level(ROW3, 1);
+
+
+    return res;
+}
+
+void stroke_reader_task(void *pvParameters) {
+    while (1) {
+        uint32_t curr_stroke = 0;
+
+        while (1) {
+            uint32_t curr_keyboard_state = read_keyboard_state();
+            curr_stroke |= curr_keyboard_state;
+
+            if (curr_keyboard_state == 0 && curr_stroke != 0) {
+                // a stroke has just ended
+                xQueueSend(stroke_queue, &curr_stroke, 0);
+                break;
+            }
+            vTaskDelay(10 / portTICK_PERIOD_MS);
+        }
+    }
+}
+
+void stroke_handler_task(void *pvParameters) {
+    while (1) {
+        uint32_t stroke = -1;
+        if (xQueueReceive(stroke_queue, &stroke, 5000 / portTICK_PERIOD_MS) == pdTRUE) {
+            ESP_LOGI("XXX", "GOT A STROKE %x", stroke);
+        }
+    }
 }
