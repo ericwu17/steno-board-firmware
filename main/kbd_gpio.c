@@ -97,41 +97,41 @@ uint32_t read_keyboard_state() {
     vTaskDelay(3);
     gpio_set_level(ROW1, 0);
     {
-        res |= (!gpio_get_level(COL01) << 0);
-        res |= (!gpio_get_level(COL02) << 2);
-        res |= (!gpio_get_level(COL03) << 4);
-        res |= (!gpio_get_level(COL04) << 7);
-        res |= (!gpio_get_level(COL05) << 10);
-        res |= (!gpio_get_level(COL06) << 13);
-        res |= (!gpio_get_level(COL07) << 16);
-        res |= (!gpio_get_level(COL08) << 19);
-        res |= (!gpio_get_level(COL09) << 21);
-        res |= (!gpio_get_level(COL10) << 23);
+        res |= (!gpio_get_level(COL01) << 0);  // Z
+        res |= (!gpio_get_level(COL02) << 2);  // T
+        res |= (!gpio_get_level(COL03) << 4);  // P
+        res |= (!gpio_get_level(COL04) << 6);  // H
+        res |= (!gpio_get_level(COL05) << 10); // *
+        res |= (!gpio_get_level(COL06) << 14); // F
+        res |= (!gpio_get_level(COL07) << 16); // P
+        res |= (!gpio_get_level(COL08) << 18); // L
+        res |= (!gpio_get_level(COL09) << 20); // T
+        res |= (!gpio_get_level(COL10) << 22); // D
     }
     gpio_set_level(ROW1, 1);
     vTaskDelay(3);
     gpio_set_level(ROW2, 0);
     {
-        res |= (!gpio_get_level(COL01) << 1);
-        res |= (!gpio_get_level(COL02) << 3);
-        res |= (!gpio_get_level(COL03) << 5);
-        res |= (!gpio_get_level(COL04) << 8);
-        res |= (!gpio_get_level(COL05) << 11);
-        res |= (!gpio_get_level(COL06) << 14);
-        res |= (!gpio_get_level(COL07) << 17);
-        res |= (!gpio_get_level(COL08) << 20);
-        res |= (!gpio_get_level(COL09) << 22);
-        res |= (!gpio_get_level(COL10) << 24);
+        res |= (!gpio_get_level(COL01) << 1);  // S
+        res |= (!gpio_get_level(COL02) << 3);  // K
+        res |= (!gpio_get_level(COL03) << 5);  // W
+        res |= (!gpio_get_level(COL04) << 7);  // R
+        res |= (!gpio_get_level(COL05) << 10); //*
+        res |= (!gpio_get_level(COL06) << 15); // R
+        res |= (!gpio_get_level(COL07) << 17); // B
+        res |= (!gpio_get_level(COL08) << 19); // G
+        res |= (!gpio_get_level(COL09) << 21); // S
+        res |= (!gpio_get_level(COL10) << 23); // Z
     }
     gpio_set_level(ROW2, 1);
     vTaskDelay(3);
     gpio_set_level(ROW3, 0);
     {
-        res |= (!gpio_get_level(COL03) << 6);
-        res |= (!gpio_get_level(COL04) << 9);
-        res |= (!gpio_get_level(COL05) << 12);
-        res |= (!gpio_get_level(COL06) << 15);
-        res |= (!gpio_get_level(COL07) << 18);
+        res |= (!gpio_get_level(COL03) << 8);  // A
+        res |= (!gpio_get_level(COL04) << 9);  // O
+        res |= (!gpio_get_level(COL05) << 11); // #
+        res |= (!gpio_get_level(COL06) << 12); // E
+        res |= (!gpio_get_level(COL07) << 13); // U
     }
     gpio_set_level(ROW3, 1);
 

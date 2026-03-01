@@ -13,7 +13,7 @@ TaskHandle_t stroke_handler_task_hdl;
 
 // temporary function to avoid optimizations
 void count_zeros() {
-    int count = 0;
+    volatile static int count = 0;
     for (int i = 0; i < key_section_size; i ++) {
         if (key_section[i] == 0) {
             count += 1;
@@ -29,8 +29,6 @@ void count_zeros() {
             count += 1;
         }
     }
-
-    ESP_LOGI("XXX", "ZERO COUNT IS %x", count);
 }
 
 void app_main(void) {
