@@ -1,3 +1,7 @@
 .vscode
 build
 .sdkconfig.old
+
+main/key_section.h
+main/val_section.h
+main/str_section.h

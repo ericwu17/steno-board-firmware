@@ -2,6 +2,7 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_log.h"
+#include "lookup.h"
 
 
 #define SW1 0
@@ -161,7 +162,12 @@ void stroke_handler_task(void *pvParameters) {
     while (1) {
         uint32_t stroke = -1;
         if (xQueueReceive(stroke_queue, &stroke, 5000 / portTICK_PERIOD_MS) == pdTRUE) {
-            ESP_LOGI("XXX", "GOT A STROKE %x", stroke);
+            int offset = find_stroke_offset_in_val_section(stroke);
+            if (offset == STROKE_NOT_FOUND) {
+                ESP_LOGI("XXX", "STROKE NOT FOUND");
+            } else {
+                ESP_LOGI("XXX", "OFFSET IS %u", offset);
+            }
         }
     }
 }

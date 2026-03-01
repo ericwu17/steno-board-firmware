@@ -4,9 +4,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "key_section.h"
-#include "str_section.h"
-#include "val_section.h"
+#include "sections.h"
 
 TaskHandle_t stroke_reader_task_hdl;
 TaskHandle_t stroke_handler_task_hdl;
