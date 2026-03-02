@@ -4,6 +4,7 @@
 #include "lookup.h"
 #include "sections.h"
 #include "utils.h"
+#include "keyboard_device.h"
 
 #define KEY_SECTION_ENTRY_LENGTH_BYTES 6
 
@@ -64,7 +65,7 @@ void do_lookup(uint32_t stroke) {
         strokes_pressed_for_this_entry[n_best_match_prev_strokes] = stroke;
         int n_strokes_pressed_for_this_entry = n_best_match_prev_strokes + 1;
 
-        write_n_deletes(popped_char_count);
+        write_n_deletes(popped_char_count + 1);
 
         accept_stroke_with_translation(n_strokes_pressed_for_this_entry, strokes_pressed_for_this_entry, best_string);
     }
@@ -95,7 +96,30 @@ uint32_t find_stroke_offset_in_val_section(uint32_t stroke) {
 }
 
 void accept_not_found_stroke(uint32_t stroke) {
-    ESP_LOGI("XXX", "STROKE NOT FOUND: %x", stroke);
+    char res_string[30];
+    int n_res_string = 0;
+    char* steno_stroke_order = "ZSTKPWHRAO*#EUFRPBLGTSDZ";
+
+    for (int i = 0; i < sizeof(n_res_string); i ++) {
+        res_string[i] = 0;
+    }
+    // "ZSTKPBFR" -> 0xFF
+    // "AO*EU" -> 0x3700
+    bool has_no_hyphen = (stroke & 0xFF) == stroke || (stroke & 0x3700) != 0;
+
+    for (int i = 0; i < strlen(steno_stroke_order); i++) {
+        if ((stroke & (1 << i)) != 0) {
+            res_string[n_res_string] = steno_stroke_order[i];
+            n_res_string ++;
+        }
+
+        if (i == 11 && !has_no_hyphen) {
+            res_string[n_res_string] = '-';
+            n_res_string ++;
+        }
+    }
+    
+    accept_stroke_with_translation(1, &stroke, (unsigned char*) res_string);
 }
 
 void accept_stroke_with_translation(int n_strokes, uint32_t* strokes, const unsigned char* translation) {
@@ -104,6 +128,8 @@ void accept_stroke_with_translation(int n_strokes, uint32_t* strokes, const unsi
     r.num_keys_written = strlen((char*) translation);
     memcpy(&r.strokes_pressed, strokes, n_strokes * sizeof(uint32_t));
 
+    send_string((char*) translation);
+    send_string(" ");
     ESP_LOGI("XXX", "STROKE WITH TRANSLATION: %s", translation);
 
     recent_strokes_push_back(r);
@@ -184,5 +210,7 @@ recent_stroke_event_t recent_strokes_pop_back() {
 }
 
 void write_n_deletes(int n) {
+    send_n_deletes(n);
+
     ESP_LOGI("XXX", "The delete key has been pressed %u times", n);
 }
