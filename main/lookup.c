@@ -45,6 +45,7 @@ void do_lookup(uint32_t stroke) {
 
         if (best_string_offset == 0xffffffff) {
             accept_not_found_stroke(stroke);
+            return;
         }
 
         const unsigned char* best_string = &str_section[best_string_offset];
