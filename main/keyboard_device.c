@@ -44,156 +44,29 @@ typedef struct
 
 static local_param_t s_ble_hid_param = {0};
 
-#define CASE(a, b, c)  \
-                case a: \
-				buffer[0] = b;  \
-				buffer[2] = c; \
-                break;\
 
-// USB keyboard codes
-#define USB_HID_MODIFIER_LEFT_CTRL      0x01
-#define USB_HID_MODIFIER_LEFT_SHIFT     0x02
-#define USB_HID_MODIFIER_LEFT_ALT       0x04
-#define USB_HID_MODIFIER_RIGHT_CTRL     0x10
-#define USB_HID_MODIFIER_RIGHT_SHIFT    0x20
-#define USB_HID_MODIFIER_RIGHT_ALT      0x40
 
-#define USB_HID_SPACE                   0x2C
-#define USB_HID_DOT                     0x37
-#define USB_HID_NEWLINE                 0x28
-#define USB_HID_FSLASH                  0x38
-#define USB_HID_BSLASH                  0x31
-#define USB_HID_COMMA                   0x36
-#define USB_HID_DOT                     0x37
-
-const unsigned char keyboardReportMap[] = { //7 bytes input (modifiers, resrvd, keys*5), 1 byte output
-    0x05, 0x01,        // Usage Page (Generic Desktop Ctrls)
-    0x09, 0x06,        // Usage (Keyboard)
-    0xA1, 0x01,        // Collection (Application)
-    0x85, 0x01,        //   Report ID (1)
-    0x05, 0x07,        //   Usage Page (Kbrd/Keypad)
-    0x19, 0xE0,        //   Usage Minimum (0xE0)
-    0x29, 0xE7,        //   Usage Maximum (0xE7)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x01,        //   Logical Maximum (1)
-    0x75, 0x01,        //   Report Size (1)
-    0x95, 0x08,        //   Report Count (8)
-    0x81, 0x02,        //   Input (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x95, 0x01,        //   Report Count (1)
-    0x75, 0x08,        //   Report Size (8)
-    0x81, 0x03,        //   Input (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0x95, 0x05,        //   Report Count (5)
-    0x75, 0x01,        //   Report Size (1)
-    0x05, 0x08,        //   Usage Page (LEDs)
-    0x19, 0x01,        //   Usage Minimum (Num Lock)
-    0x29, 0x05,        //   Usage Maximum (Kana)
-    0x91, 0x02,        //   Output (Data,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x95, 0x01,        //   Report Count (1)
-    0x75, 0x03,        //   Report Size (3)
-    0x91, 0x03,        //   Output (Const,Var,Abs,No Wrap,Linear,Preferred State,No Null Position,Non-volatile)
-    0x95, 0x05,        //   Report Count (5)
-    0x75, 0x08,        //   Report Size (8)
-    0x15, 0x00,        //   Logical Minimum (0)
-    0x25, 0x65,        //   Logical Maximum (101)
-    0x05, 0x07,        //   Usage Page (Kbrd/Keypad)
-    0x19, 0x00,        //   Usage Minimum (0x00)
-    0x29, 0x65,        //   Usage Maximum (0x65)
-    0x81, 0x00,        //   Input (Data,Array,Abs,No Wrap,Linear,Preferred State,No Null Position)
-    0xC0,              // End Collection
-
-    // 65 bytes
+const unsigned char ploverHIDDescriptor[] =
+{
+    0x06, 0x50, 0xff,              // UsagePage (65360)
+    0x0a, 0x56, 0x4c,              // Usage (19542)
+    0xa1, 0x02,                    // Collection (Logical)
+    0x85, 0x50,                    //     ReportID (80)
+    0x25, 0x01,                    //     LogicalMaximum (1)
+    0x75, 0x01,                    //     ReportSize (1)
+    0x95, 0x40,                    //     ReportCount (64)
+    0x05, 0x0a,                    //     UsagePage (ordinal)
+    0x19, 0x00,                    //     UsageMinimum (Ordinal(0))
+    0x29, 0x3f,                    //     UsageMaximum (Ordinal(63))
+    0x81, 0x02,                    //     Input (Variable)
+    0xc0,                          // EndCollection
 };
 
-static void char_to_code(uint8_t *buffer, char ch)
+
+void send_state(uint8_t *buffer)
 {
-	// Check if lower or upper case
-	if(ch >= 'a' && ch <= 'z')
-	{
-		buffer[0] = 0;
-		// convert ch to HID letter, starting at a = 4
-		buffer[2] = (uint8_t)(4 + (ch - 'a'));
-	}
-	else if(ch >= 'A' && ch <= 'Z')
-	{
-		// Add left shift
-		buffer[0] = USB_HID_MODIFIER_LEFT_SHIFT;
-		// convert ch to lower case
-		ch = ch - ('A'-'a');
-		// convert ch to HID letter, starting at a = 4
-		buffer[2] = (uint8_t)(4 + (ch - 'a'));
-	}
-	else if(ch >= '0' && ch <= '9') // Check if number
-	{
-		buffer[0] = 0;
-		// convert ch to HID number, starting at 1 = 30, 0 = 39
-		if(ch == '0')
-		{
-			buffer[2] = 39;
-		}
-		else
-		{
-			buffer[2] = (uint8_t)(30 + (ch - '1'));
-		}
-	}
-	else // not a letter nor a number
-	{
-		switch(ch)
-		{
-            CASE(' ', 0, USB_HID_SPACE);
-			CASE('.', 0,USB_HID_DOT);
-            CASE('\n', 0, USB_HID_NEWLINE);
-			CASE('?', USB_HID_MODIFIER_LEFT_SHIFT, USB_HID_FSLASH);
-			CASE('/', 0 ,USB_HID_FSLASH);
-			CASE('\\', 0, USB_HID_BSLASH);
-			CASE('|', USB_HID_MODIFIER_LEFT_SHIFT, USB_HID_BSLASH);
-			CASE(',', 0, USB_HID_COMMA);
-			CASE('<', USB_HID_MODIFIER_LEFT_SHIFT, USB_HID_COMMA);
-			CASE('>', USB_HID_MODIFIER_LEFT_SHIFT, USB_HID_COMMA);
-			CASE('@', USB_HID_MODIFIER_LEFT_SHIFT, 31);
-			CASE('!', USB_HID_MODIFIER_LEFT_SHIFT, 30);
-			CASE('#', USB_HID_MODIFIER_LEFT_SHIFT, 32);
-			CASE('$', USB_HID_MODIFIER_LEFT_SHIFT, 33);
-			CASE('%', USB_HID_MODIFIER_LEFT_SHIFT, 34);
-			CASE('^', USB_HID_MODIFIER_LEFT_SHIFT,35);
-			CASE('&', USB_HID_MODIFIER_LEFT_SHIFT, 36);
-			CASE('*', USB_HID_MODIFIER_LEFT_SHIFT, 37);
-			CASE('(', USB_HID_MODIFIER_LEFT_SHIFT, 38);
-			CASE(')', USB_HID_MODIFIER_LEFT_SHIFT, 39);
-			CASE('-', 0, 0x2D);
-			CASE('_', USB_HID_MODIFIER_LEFT_SHIFT, 0x2D);
-			CASE('=', 0, 0x2E);
-			CASE('+', USB_HID_MODIFIER_LEFT_SHIFT, 39);
-			CASE(8, 0, 0x2A); // backspace
-			CASE('\t', 0, 0x2B);
-			default:
-				buffer[0] = 0;
-				buffer[2] = 0;
-		}
-	}
-}
-
-void send_char(char c)
-{
-    static uint8_t buffer[8] = {0};
-    char_to_code(buffer, c);
-    esp_hidd_dev_input_set(s_ble_hid_param.hid_dev, 0, 1, buffer, 8);
-
-    memset(buffer, 0, sizeof(uint8_t) * 8);
-    esp_hidd_dev_input_set(s_ble_hid_param.hid_dev, 0, 1, buffer, 8);
-}
-
-void send_string(char* s) {
-    int n = strlen(s);
-    for (int i = 0; i < n; i ++) {
-        send_char(s[i]);
-    }
-}
-
-void send_n_deletes(int n) {
-    char delete_char_code = 8;
-    for (int i = 0; i < n; i ++) {
-        send_char(delete_char_code);
-    }
+    // Use a fixed report ID of 0x50 so plover can identify the device.
+    esp_hidd_dev_input_set(s_ble_hid_param.hid_dev, 0, 0x50, buffer, 8);
 }
 
 bool is_connected() {
@@ -203,8 +76,8 @@ bool is_connected() {
 
 static esp_hid_raw_report_map_t ble_report_maps[] = {
     {
-        .data = keyboardReportMap,
-        .len = sizeof(keyboardReportMap)
+        .data = ploverHIDDescriptor,
+        .len = sizeof(ploverHIDDescriptor)
     },
 };
 
@@ -212,8 +85,8 @@ static esp_hid_device_config_t ble_hid_config = {
     .vendor_id          = 0x16C0,
     .product_id         = 0x05DF,
     .version            = 0x0100,
-    .device_name        = "ESP BLE HID2",
-    .manufacturer_name  = "Espressif",
+    .device_name        = "Steno Board",
+    .manufacturer_name  = "IEEE SPI",
     .serial_number      = "1234567890",
     .report_maps        = ble_report_maps,
     .report_maps_len    = 1
