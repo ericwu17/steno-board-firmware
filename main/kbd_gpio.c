@@ -2,7 +2,6 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_log.h"
-#include "lookup.h"
 
 
 #define SW1 0
@@ -141,28 +140,15 @@ uint32_t read_keyboard_state() {
 }
 
 void stroke_reader_task(void *pvParameters) {
+    uint32_t prev_state = 0;
+
     while (1) {
-        uint32_t curr_stroke = 0;
+        uint32_t curr_keyboard_state = read_keyboard_state();
 
-        while (1) {
-            uint32_t curr_keyboard_state = read_keyboard_state();
-            curr_stroke |= curr_keyboard_state;
-
-            if (curr_keyboard_state == 0 && curr_stroke != 0) {
-                // a stroke has just ended
-                xQueueSend(stroke_queue, &curr_stroke, 0);
-                break;
-            }
-            vTaskDelay(10 / portTICK_PERIOD_MS);
+        if (curr_keyboard_state != prev_state) {
+            // TODO: handle a state change of the keyboard
+            ESP_LOGI("XXX", "KEYBOARD STATE CHANGED!");
         }
-    }
-}
-
-void stroke_handler_task(void *pvParameters) {
-    while (1) {
-        uint32_t stroke = -1;
-        if (xQueueReceive(stroke_queue, &stroke, 5000 / portTICK_PERIOD_MS) == pdTRUE) {
-            do_lookup(stroke);
-        }
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
