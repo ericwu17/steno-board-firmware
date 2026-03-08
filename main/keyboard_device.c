@@ -50,7 +50,7 @@ const unsigned char ploverHIDDescriptor[] =
 {
     0x06, 0x50, 0xff,              // UsagePage (65360)
     0x0a, 0x56, 0x4c,              // Usage (19542)
-    0xa1, 0x02,                    // Collection (Logical)
+    0xa1, 0x01,                    // Collection (Logical)
     0x85, 0x50,                    //     ReportID (80)
     0x25, 0x01,                    //     LogicalMaximum (1)
     0x75, 0x01,                    //     ReportSize (1)
