@@ -28,7 +28,7 @@
 #define LED1 5  // Left LED (red)
 #define LED2 4  // Right LED (green)
 
-static uint8_t *CURR_KBD_STATE = {0};
+static uint8_t CURR_KBD_STATE[8] = {0};
 
 void init_kbd_gpio() {
     gpio_set_direction(SW1, GPIO_MODE_INPUT);
@@ -157,7 +157,5 @@ void stroke_reader_task(void *pvParameters) {
         }
     
         prev_state = curr_state;
-
-        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }
