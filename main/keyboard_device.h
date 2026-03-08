@@ -2,16 +2,15 @@
 #define KEYBOARD_DEVICE_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 
 void init_keyboard();
 bool is_connected();
 
-void send_char(char c);
-void send_string(char* s);
-void send_n_deletes(int n);
+void send_state(uint8_t *buffer);
 
 void stroke_reader_task(void *pvParameters);
-void stroke_handler_task(void *pvParameters);
+
 
 #endif

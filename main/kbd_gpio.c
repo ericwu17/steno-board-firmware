@@ -2,6 +2,7 @@
 #include "driver/gpio.h"
 #include "freertos/FreeRTOS.h"
 #include "esp_log.h"
+#include "keyboard_device.h"
 
 
 #define SW1 0
@@ -27,8 +28,7 @@
 #define LED1 5  // Left LED (red)
 #define LED2 4  // Right LED (green)
 
-static const int stroke_queue_length = 5;
-static QueueHandle_t stroke_queue;
+static uint8_t *CURR_KBD_STATE = {0};
 
 void init_kbd_gpio() {
     gpio_set_direction(SW1, GPIO_MODE_INPUT);
@@ -77,8 +77,6 @@ void init_kbd_gpio() {
 
     gpio_set_level(LED1, 0);
     gpio_set_level(LED2, 0);
-
-    stroke_queue = xQueueCreate(stroke_queue_length, sizeof(uint32_t));
 }
 
 int read_switches() {
@@ -92,63 +90,74 @@ void set_led_2(int level) {
     gpio_set_level(LED2, level);
 }
 
-uint32_t read_keyboard_state() {
-    uint32_t res = 0;
+void read_keyboard_state() {
+    // puts output in global variable CURR_KBD_STATE
+
+    // For now, we are only using the first 3 bytes.
+    // Byte 1:    S1- T- K- P- W- H- R- A-
+    // Byte 2:    O- *1 -E -U -F -R -P -B
+    // Byte 3:    -L -G -T -S -D -Z #1 S2-
+    // Byte 4:    *2 *3 *4 #2 #3 #4 #5 #6
+    CURR_KBD_STATE[0] = 0;
+    CURR_KBD_STATE[1] = 0;
+    CURR_KBD_STATE[2] = 0;
+    CURR_KBD_STATE[3] = 0;
+
     vTaskDelay(3);
     gpio_set_level(ROW1, 0);
     {
-        res |= (!gpio_get_level(COL01) << 0);  // Z
-        res |= (!gpio_get_level(COL02) << 2);  // T
-        res |= (!gpio_get_level(COL03) << 4);  // P
-        res |= (!gpio_get_level(COL04) << 6);  // H
-        res |= (!gpio_get_level(COL05) << 10); // *
-        res |= (!gpio_get_level(COL06) << 14); // F
-        res |= (!gpio_get_level(COL07) << 16); // P
-        res |= (!gpio_get_level(COL08) << 18); // L
-        res |= (!gpio_get_level(COL09) << 20); // T
-        res |= (!gpio_get_level(COL10) << 22); // D
+        CURR_KBD_STATE[0] |= (!gpio_get_level(COL01) << 7);  // S1-
+        CURR_KBD_STATE[0] |= (!gpio_get_level(COL02) << 6);  // T-
+        CURR_KBD_STATE[0] |= (!gpio_get_level(COL03) << 4);  // P-
+        CURR_KBD_STATE[0] |= (!gpio_get_level(COL04) << 2);  // H-
+        CURR_KBD_STATE[1] |= (!gpio_get_level(COL05) << 6);  // *1
+        CURR_KBD_STATE[1] |= (!gpio_get_level(COL06) << 3);  // -F
+        CURR_KBD_STATE[1] |= (!gpio_get_level(COL07) << 1);  // -P
+        CURR_KBD_STATE[2] |= (!gpio_get_level(COL08) << 7);  // -L
+        CURR_KBD_STATE[2] |= (!gpio_get_level(COL09) << 5);  // -T
+        CURR_KBD_STATE[2] |= (!gpio_get_level(COL10) << 3);  // -D
     }
     gpio_set_level(ROW1, 1);
     vTaskDelay(3);
     gpio_set_level(ROW2, 0);
     {
-        res |= (!gpio_get_level(COL01) << 1);  // S
-        res |= (!gpio_get_level(COL02) << 3);  // K
-        res |= (!gpio_get_level(COL03) << 5);  // W
-        res |= (!gpio_get_level(COL04) << 7);  // R
-        res |= (!gpio_get_level(COL05) << 10); //*
-        res |= (!gpio_get_level(COL06) << 15); // R
-        res |= (!gpio_get_level(COL07) << 17); // B
-        res |= (!gpio_get_level(COL08) << 19); // G
-        res |= (!gpio_get_level(COL09) << 21); // S
-        res |= (!gpio_get_level(COL10) << 23); // Z
+        CURR_KBD_STATE[2] |= (!gpio_get_level(COL01) << 0);  // S2-
+        CURR_KBD_STATE[0] |= (!gpio_get_level(COL02) << 5);  // K-
+        CURR_KBD_STATE[0] |= (!gpio_get_level(COL03) << 3);  // W-
+        CURR_KBD_STATE[0] |= (!gpio_get_level(COL04) << 1);  // R-
+        CURR_KBD_STATE[3] |= (!gpio_get_level(COL05) << 7);  // *2
+        CURR_KBD_STATE[1] |= (!gpio_get_level(COL06) << 2);  // -R
+        CURR_KBD_STATE[1] |= (!gpio_get_level(COL07) << 0);  // -B
+        CURR_KBD_STATE[2] |= (!gpio_get_level(COL08) << 6);  // -G
+        CURR_KBD_STATE[2] |= (!gpio_get_level(COL09) << 4);  // -S
+        CURR_KBD_STATE[2] |= (!gpio_get_level(COL10) << 2);  // -Z
     }
     gpio_set_level(ROW2, 1);
     vTaskDelay(3);
     gpio_set_level(ROW3, 0);
     {
-        res |= (!gpio_get_level(COL03) << 8);  // A
-        res |= (!gpio_get_level(COL04) << 9);  // O
-        res |= (!gpio_get_level(COL05) << 11); // #
-        res |= (!gpio_get_level(COL06) << 12); // E
-        res |= (!gpio_get_level(COL07) << 13); // U
+        CURR_KBD_STATE[0] |= (!gpio_get_level(COL03) << 0);  // A-
+        CURR_KBD_STATE[1] |= (!gpio_get_level(COL04) << 7);  // O-
+        CURR_KBD_STATE[2] |= (!gpio_get_level(COL05) << 1); // #1
+        CURR_KBD_STATE[1] |= (!gpio_get_level(COL06) << 5); // -E
+        CURR_KBD_STATE[1] |= (!gpio_get_level(COL07) << 4); // -U
     }
     gpio_set_level(ROW3, 1);
-
-
-    return res;
 }
 
 void stroke_reader_task(void *pvParameters) {
-    uint32_t prev_state = 0;
+    uint64_t prev_state = 0;
 
     while (1) {
-        uint32_t curr_keyboard_state = read_keyboard_state();
+        read_keyboard_state();
+        uint64_t curr_state = *((uint64_t*) (CURR_KBD_STATE));
 
-        if (curr_keyboard_state != prev_state) {
-            // TODO: handle a state change of the keyboard
-            ESP_LOGI("XXX", "KEYBOARD STATE CHANGED!");
+        if (curr_state != prev_state) {
+            send_state(&CURR_KBD_STATE[0]);
         }
+    
+        prev_state = curr_state;
+
         vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }

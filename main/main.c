@@ -20,6 +20,15 @@ void app_main(void) {
         vTaskDelay(1000/portTICK_PERIOD_MS);
         set_led_1(led1state);
         led1state = !led1state;
+
+        uint8_t buf[8] = {0};
+
+        if (led1state) {
+            buf[0] = 0x0D;  // This should be the stroke "SKP"
+        }
+        if (is_connected()) {
+            send_state(buf);
+        }
     }
 }
 
